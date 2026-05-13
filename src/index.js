@@ -74,7 +74,7 @@ for (let [roomIndex, room] of rooms.entries()) {
     let areaOfOpenings = 0;
     for (const opening of openings) {
       const { width: openingWidth, height: openingHeight } = opening;
-      const openingArea = Math.round(openingWidth * openingHeight) / 100;
+      const openingArea = Math.round(openingWidth * openingHeight * 100) / 100;
       console.log(`  Opening area is ${openingArea} ${areaUnit}`);
       areaOfOpenings += openingArea;
     }
@@ -96,13 +96,12 @@ for (let [roomIndex, room] of rooms.entries()) {
     console.log(`  This paint covers ${paintCoverage} ${coverageUnit}`);
     console.log(`  You will need ${surfaceVolumeString} for this surface.`);
   }
+}
+//  Report the total amount of paint needed
+for (const { paintName, volumeNeeded } of paintsInventory) {
+  const totalVolumeString = getVolumeAsString(volumeNeeded);
 
-  //  Report the total amount of paint needed
-  for (const { paintName, volumeNeeded } of paintsInventory) {
-    const totalVolumeString = getVolumeAsString(volumeNeeded);
-
-    console.log(`${paintName}:\n  Total needed: ${totalVolumeString}`);
-  }
+  console.log(`${paintName}:\n  Total needed: ${totalVolumeString}`);
 }
 
 rl.close();
@@ -131,7 +130,7 @@ function getVolumeAsString(volumeOfPaint) {
  *  Array<{
  *   width: number,
  *   height: number,
- *   paint: {paintName: string, paintCoats: number, coverage: number},
+ *   paint: {paintName: string, paintCoats: number, paintCoverage: number},
  *   openings: Array<{width: number, height: number}>
  *  }>
  * >}
@@ -161,7 +160,7 @@ async function getInfoAboutBuilding() {
  * @returns {Array<{
  *  width: number,
  *  height: number,
- *  paint: {paintName: string, paintCoats: number, coverage: number},
+ *  paint: {paintName: string, paintCoats: number, paintCoverage: number},
  *  openings: Array<{width: number, height: number}>
  * }>} surfaces: array of surface info objects
  */
@@ -196,7 +195,7 @@ async function getInfoAboutRoom() {
  * @returns {
  *  width: number,
  *  height: number,
- *  paint: {paintName: string, paintCoats: number, coverage: number},
+ *  paint: {paintName: string, paintCoats: number, paintCoverage: number},
  *  openings: Array<{width: number, height: number}>
  * }
  */
@@ -258,7 +257,7 @@ async function getInfoAboutOpening(friendlySurfaceNumber) {
  * @returns {
  *  paintName: string,
  *  paintCoats: number,
- *  coverage: number
+ *  paintCoverage: number
  * }
  */
 async function getPaintForSurface(thingToBePainted) {
@@ -285,8 +284,12 @@ async function getPaintForSurface(thingToBePainted) {
   // TODO Default to coverage entered earlier for this paint.
   const paintCoverage = await askForRequiredAnswer(
     `How much surface area does a ${volumeUnitMajorSing} of this paint cover (${coverageUnit})? `,
+    "float",
   );
-  const paintCoats = await askForRequiredAnswer("How many coats of that paint will be needed for this surface? ");
+  const paintCoats = await askForRequiredAnswer(
+    "How many coats of that paint will be needed for this surface? ",
+    "float",
+  );
 
   // TODO side effect!
   paintsInventory.push({ paintName, paintCoats, paintCoverage, volumeNeeded: 0 });
@@ -329,8 +332,9 @@ async function askYN(question) {
 }
 
 async function askForListChoice(question, listLength) {
-  const answer = await askForFriendlyAnswer(question, "string");
-  if (Number.isInteger(parseInt(answer)) && answer >= 1 && answer <= listLength) {
+  const answer = await askForFriendlyAnswer(question, "int");
+  const answerAsNumber = parseInt(answer);
+  if (Number.isInteger(answer) && answer >= 1 && answer <= listLength) {
     return answer;
   }
 }
@@ -339,7 +343,7 @@ async function askForRequiredAnswer(question, type) {
   let repeatUntilReturn = true;
   while (repeatUntilReturn) {
     const answer = await askForFriendlyAnswer(question, type);
-    if (answer !== "") {
+    if (answer !== "" && !Number.isNaN(answer)) {
       return answer;
     }
   }
