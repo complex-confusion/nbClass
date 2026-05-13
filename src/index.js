@@ -308,6 +308,33 @@ async function getPaintForSurface(thingToBePainted) {
   return { paintName, paintCoats, paintCoverage };
 }
 
-async function askForFriendlyString(question) {
-  return (await rl.question(question)).toLowerCase().trim();
+async function askForFriendlyAnswer(question, type) {
+  let friendlyAnswer = (await rl.question(question)).trim();
+
+  switch (type) {
+    case "float":
+    case "decimal":
+      friendlyAnswer = parseFloat(friendlyAnswer);
+      break;
+    case "integer":
+    case "int":
+      friendlyAnswer = parseInt(friendlyAnswer);
+      break;
+    default:
+      friendlyAnswer = friendlyAnswer.toLowerCase();
+      break;
+  }
+
+  return friendlyAnswer;
+}
+
+async function askYN(question) {
+  let repeatUntilReturn = true;
+  while (repeatUntilReturn) {
+    const answer = await askForFriendlyAnswer(question);
+    if (["yes", "y", "no", "n"].includes(answer)) {
+      return ["yes", "y"].includes(answer);
+    }
+    console.log("Please enter yes/y or no/n.");
+  }
 }
