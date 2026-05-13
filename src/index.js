@@ -65,7 +65,7 @@ rooms = await getInfoAboutBuilding();
 for (let [roomIndex, room] of rooms.entries()) {
   for (let [surfaceIndex, surface] of room.entries()) {
     const { width, height, paint, openings } = surface;
-    const surfaceArea = Math.round(width * height) / 100;
+    const surfaceArea = Math.round(width * height * 100) / 100;
     // TODO get index
     console.log(
       `\nSurface area of room #${roomIndex + 1}, ${surfacesString} #${surfaceIndex + 1} is ${surfaceArea} ${areaUnit}`,
@@ -274,9 +274,7 @@ async function getPaintForSurface(thingToBePainted) {
     );
     const index = choiceFromList - 1;
     if (index >= 0 && index < paintsInventory.length) {
-      const paintCoats = parseFloat(
-        await askForRequiredAnswer(`How many coats for this ${thingToBePainted}? `, "float"),
-      );
+      const paintCoats = await askForRequiredAnswer(`How many coats for this ${thingToBePainted}? `, "float");
       return { ...paintsInventory[index], paintCoats };
     }
   }
