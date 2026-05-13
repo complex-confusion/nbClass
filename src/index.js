@@ -147,8 +147,7 @@ async function getInfoAboutBuilding() {
     const roominfo = await getInfoAboutRoom();
     rooms.push(roominfo);
 
-    const haveAnother = await rl.question(`Do you have another room to paint? `);
-    isRoomInfoNeeded = ["yes", "y"].includes(haveAnother);
+    isRoomInfoNeeded = await askYN(`Do you have another room to paint? `);
   }
 
   return rooms;
@@ -179,8 +178,7 @@ async function getInfoAboutRoom() {
     const surfaceInfo = await getInfoAboutSurface(friendlyRoomNumber);
     surfaces.push(surfaceInfo);
 
-    const haveAnother = await rl.question(`Do you have another surface in room #${friendlyRoomNumber}? `);
-    isSurfaceInfoNeeded = ["yes", "y"].includes(haveAnother);
+    isSurfaceInfoNeeded = await askYN(`Do you have another surface in room #${friendlyRoomNumber}? `);
   }
 
   roomNumber++;
@@ -208,13 +206,11 @@ async function getInfoAboutSurface(friendlyRoomNumber) {
   console.log(`For room #${friendlyRoomNumber}, surface #${friendlySurfaceNumber}:`);
 
   // TODO convert strings to numbers
-  const width = parseFloat(await rl.question(`What is the width (in ${linearUnit})? `));
-  const height = parseFloat(await rl.question(`What is the height (in ${linearUnit})? `));
+  const width = await askForRequiredAnswer(`What is the width (in ${linearUnit})? `, "float");
+  const height = await askForRequiredAnswer(`What is the height (in ${linearUnit})? `, "float");
   const paint = await getPaintForSurface("surface");
 
-  const haveOpenings = await rl.question(`Does surface #${friendlySurfaceNumber} have any ${openingsString}? `);
-
-  let isOpeningInfoNeeded = ["yes", "y"].includes(haveOpenings);
+  let isOpeningInfoNeeded = await askYN(`Does surface #${friendlySurfaceNumber} have any ${openingsString}? `);
   while (isOpeningInfoNeeded) {
     if (openingNumber === 0) {
       console.log(`Provide info for each door, window, or other opening in surface #${friendlySurfaceNumber}.`);
@@ -224,8 +220,7 @@ async function getInfoAboutSurface(friendlyRoomNumber) {
     openings.push(openingInfo);
 
     // TODO fix this to be an undefeatable boolean question
-    const haveAnother = await rl.question(`Do you have another opening in surface #${friendlySurfaceNumber}? `);
-    isOpeningInfoNeeded = ["yes", "y"].includes(haveAnother);
+    isOpeningInfoNeeded = await askYN(`Do you have another opening in surface #${friendlySurfaceNumber}? `);
   }
 
   surfaceNumber++;
@@ -246,18 +241,8 @@ async function getInfoAboutOpening(friendlySurfaceNumber) {
   const friendlyOpeningNumber = openingNumber + 1;
 
   console.log(`For opening #${friendlyOpeningNumber} in surface #${friendlySurfaceNumber}`);
-  const width = await rl.question(`What is the width (in ${linearUnit})? `);
-  const height = await rl.question(`What is the height (in ${linearUnit})? `);
-
-  // const openings = [];
-  // TODO Allow doors to be painted?
-  // let paintName = null;
-  // let paintCoats = null;
-  // const toBePainted = await rl.question('Is this getting painted? (yes/no) ');
-  // if (['yes', 'y'].includes(toBePainted)) {
-  //   ({ paintName, paintCoats } = await getPaintForSurface('door'));
-  // }
-  // openings.push({ width, height, paintName, paintCoats });
+  const width = await askForRequiredAnswer(`What is the width (in ${linearUnit})? `, "float");
+  const height = await askForRequiredAnswer(`What is the height (in ${linearUnit})? `, "float");
 
   openingNumber++;
 
@@ -283,24 +268,27 @@ async function getPaintForSurface(thingToBePainted) {
     console.log("\nPaints used so far:");
     paintsInventory.forEach((p, i) => console.log(`  ${i + 1}. "${p.paintName}"`));
 
-    const choiceFromList = await rl.question(
+    const choiceFromList = await askForListChoice(
       `Enter one of those numbers to reuse a paint, or press Enter to identify a new paint: `,
+      paintsInventory.length,
     );
-    const index = parseInt(choiceFromList) - 1;
+    const index = choiceFromList - 1;
     if (index >= 0 && index < paintsInventory.length) {
-      const paintCoats = parseFloat(await rl.question(`How many coats for this ${thingToBePainted}? `));
+      const paintCoats = parseFloat(
+        await askForRequiredAnswer(`How many coats for this ${thingToBePainted}? `, "float"),
+      );
       return { ...paintsInventory[index], paintCoats };
     }
   }
 
-  const paintName = await rl.question(
+  const paintName = await askForRequiredAnswer(
     `Which paint will be used for this ${thingToBePainted}? Identify the paint by color and type (e.g. "Behr Ultra Sticking White Wall Paint") `,
   );
   // TODO Default to coverage entered earlier for this paint.
-  const paintCoverage = parseFloat(
-    await rl.question(`How much surface area does a ${volumeUnitMajorSing} of this paint cover (${coverageUnit})? `),
+  const paintCoverage = await askForRequiredAnswer(
+    `How much surface area does a ${volumeUnitMajorSing} of this paint cover (${coverageUnit})? `,
   );
-  const paintCoats = parseFloat(await rl.question("How many coats of that paint will be needed for this surface? "));
+  const paintCoats = await askForRequiredAnswer("How many coats of that paint will be needed for this surface? ");
 
   // TODO side effect!
   paintsInventory.push({ paintName, paintCoats, paintCoverage, volumeNeeded: 0 });
@@ -318,8 +306,11 @@ async function askForFriendlyAnswer(question, type) {
       break;
     case "integer":
     case "int":
-      friendlyAnswer = parseInt(friendlyAnswer);
+      // friendlyAnswer = parseInt(friendlyAnswer);
+      // Consider two decimal places of any weird numeric answer they give
+      friendlyAnswer = Math.round(Math.round(parseFloat(friendlyAnswer) * 100) / 100);
       break;
+    case "string":
     default:
       friendlyAnswer = friendlyAnswer.toLowerCase();
       break;
@@ -337,4 +328,22 @@ async function askYN(question) {
     }
     console.log("Please enter yes/y or no/n.");
   }
+}
+
+async function askForListChoice(question, listLength) {
+  const answer = await askForFriendlyAnswer(question, "string");
+  if (Number.isInteger(parseInt(answer)) && answer >= 1 && answer <= listLength) {
+    return answer;
+  }
+}
+
+async function askForRequiredAnswer(question, type) {
+  let repeatUntilReturn = true;
+  while (repeatUntilReturn) {
+    const answer = await askForFriendlyAnswer(question, type);
+    if (answer !== "") {
+      return answer;
+    }
+  }
+  console.log(`Please answer:\n  "${question}"`);
 }
