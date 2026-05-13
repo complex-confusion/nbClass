@@ -62,9 +62,8 @@ console.log("and paint is purchased in gallons and quarts (quarter gallons).");
 rooms = await getInfoAboutBuilding();
 
 // Report on the volumes of paints needed:
-for (let [roomIndex, room] of rooms.entries) {
-  console.log("room", room);
-  for (let [surfaceIndex, surface] of room.entries) {
+for (let [roomIndex, room] of rooms.entries()) {
+  for (let [surfaceIndex, surface] of room.entries()) {
     const { width, height, paint, openings } = surface;
     const surfaceArea = Math.round(width * height) / 100;
     // TODO get index
@@ -309,18 +308,6 @@ async function getPaintForSurface(thingToBePainted) {
   return { paintName, paintCoats, paintCoverage };
 }
 
-// async function getInfoAboutPaints() {
-//   const paintsInfoGathered = [];
-//   let isPaintInfoNeeded = true;
-//   while (isPaintInfoNeeded) {
-//     const paintName = await rl.question(`What is the name of this paint? `);
-//
-//     const paintCoverage = await rl.question(`What is the coverage for this paint (${coverageUnit})? `);
-//     paintsInfoGathered.push({ paintName, paintCoverage });
-
-//     const haveAnother = await rl.question(`Do you have another paint to enter? `);
-//     isPaintInfoNeeded = ["yes", "y"].includes(haveAnother);
-//   }
-
-//   return paintsInfoGathered;
-// }
+async function askForFriendlyString(question) {
+  return (await rl.question(question)).toLowerCase().trim();
+}
